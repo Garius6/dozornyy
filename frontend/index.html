@@ -9,120 +9,323 @@
 			color-scheme: light dark;
 			--accent: #6366f1;
 			--accent-dark: #4f46e5;
+			--accent-soft: #eef2ff;
 			--danger: #ef4444;
+			--danger-soft: #fef2f2;
+			--bg: #f1f5f9;
 			--surface: #ffffff;
 			--surface-muted: #f8fafc;
 			--border: #e2e8f0;
 			--text: #0f172a;
 			--text-muted: #64748b;
+			--radius: 0.9rem;
+			--shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06);
 		}
 		@media (prefers-color-scheme: dark) {
 			:root {
-				--surface: #1e293b;
-				--surface-muted: #0f172a;
-				--border: #334155;
-				--text: #f1f5f9;
-				--text-muted: #94a3b8;
+				--bg: #0b1220;
+				--surface: #131b2c;
+				--surface-muted: #1a2436;
+				--accent-soft: #1e2547;
+				--danger-soft: #2a1518;
+				--border: #26324a;
+				--text: #e6ebf5;
+				--text-muted: #8b96ab;
+				--shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.35);
 			}
 		}
 		* { box-sizing: border-box; }
 		body {
 			margin: 0;
 			min-height: 100vh;
-			display: flex;
-			justify-content: center;
-			padding: 3rem 1rem;
-			background: var(--surface-muted);
+			background: var(--bg);
 			color: var(--text);
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+			-webkit-font-smoothing: antialiased;
 		}
-		main { width: 100%; max-width: 40rem; }
-		h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 1.25rem; text-align: center; }
-		.скрыто { display: none; }
-		.панель {
+		.скрыто { display: none !important; }
+
+		/* --- Login screen ---
+		   #панель-логина's OWN class is toggled wholesale by main.pns
+		   between "панель" (visible) and "скрыто" (hidden) — it never
+		   touches anything nested inside. So the fixed-overlay/centering
+		   behavior lives on `#панель-логина.панель` (the id+class it
+		   actually gets set to), and the real card visuals live on the
+		   nested .карточка-логина, which JS never selects into. */
+		#панель-логина.панель {
+			position: fixed;
+			inset: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 1.5rem;
+			background: var(--bg);
+			z-index: 20;
+		}
+		.бренд {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.6rem;
+			margin-bottom: 1.5rem;
+		}
+		.бренд-значок {
+			width: 2.25rem;
+			height: 2.25rem;
+			border-radius: 0.65rem;
+			background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			font-weight: 700;
+			font-size: 1.1rem;
+		}
+		.бренд-текст { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
+		.карточка-логина {
+			width: 100%;
+			max-width: 22rem;
+			padding: 1.75rem;
 			background: var(--surface);
 			border: 1px solid var(--border);
-			border-radius: 1rem;
-			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
-			padding: 1rem;
+			border-radius: var(--radius);
+			box-shadow: var(--shadow);
 		}
-		input {
-			padding: 0.6rem 0.8rem;
-			border: 1px solid var(--border);
-			border-radius: 0.6rem;
-			background: var(--surface-muted);
-			color: var(--text);
-			font-size: 0.95rem;
-			outline: none;
+		.карточка-логина h2 {
+			margin: 0 0 0.25rem;
+			font-size: 1.1rem;
+			font-weight: 700;
 		}
-		input:focus { border-color: var(--accent); }
-		button {
-			padding: 0.6rem 1rem;
-			border: none;
-			border-radius: 0.6rem;
-			background: var(--accent);
-			color: white;
-			font-size: 0.9rem;
+		.карточка-логина .подсказка {
+			margin: 0 0 1.25rem;
+			font-size: 0.85rem;
+			color: var(--text-muted);
+		}
+		.карточка-логина .поле-группа { margin-bottom: 0.75rem; }
+		.карточка-логина label {
+			display: block;
+			font-size: 0.8rem;
 			font-weight: 600;
-			cursor: pointer;
+			color: var(--text-muted);
+			margin-bottom: 0.35rem;
 		}
-		button:hover { background: var(--accent-dark); }
-		.форма { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
-		.форма input { flex: 1; min-width: 8rem; }
-		.вкладки { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; }
+		.карточка-логина input { width: 100%; }
+		#кнопка-войти { width: 100%; margin-top: 0.5rem; padding: 0.7rem 1rem; }
+
+		/* --- App shell ---
+		   main.pns sets #приложение's class to "панель"/"скрыто" too
+		   (same toggle helper as #панель-логина) — neutralize the card
+		   look for THIS id so it doesn't wrap the whole viewport-height
+		   shell in a bordered box; the real layout lives in .шапка/
+		   .контейнер below, unaffected by class toggling since JS never
+		   touches them. */
+		#приложение { min-height: 100vh; }
+		#приложение.панель { background: none; border: none; border-radius: 0; box-shadow: none; }
+		.шапка {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 1rem;
+			padding: 0.9rem 1.5rem;
+			background: var(--surface);
+			border-bottom: 1px solid var(--border);
+			position: sticky;
+			top: 0;
+			z-index: 10;
+		}
+		.контейнер {
+			width: 100%;
+			max-width: 52rem;
+			margin: 0 auto;
+			padding: 1.75rem 1.5rem 3rem;
+		}
+		.вкладки {
+			display: flex;
+			gap: 0.25rem;
+			margin-bottom: 1.25rem;
+			border-bottom: 1px solid var(--border);
+		}
 		.вкладка {
 			background: transparent;
 			color: var(--text-muted);
-			border: 1px solid var(--border);
+			border: none;
+			border-bottom: 2px solid transparent;
+			border-radius: 0;
+			padding: 0.65rem 0.9rem;
+			font-weight: 600;
 		}
-		.вкладка-активна { background: var(--accent); color: white; border-color: var(--accent); }
-		.раздел ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+		.вкладка:hover { color: var(--text); background: transparent; }
+		.вкладка-активна {
+			background: transparent;
+			color: var(--accent);
+			border-bottom-color: var(--accent);
+		}
+
+		/* --- Panels / cards ---
+		   `.раздел` gets full card styling directly (not through a
+		   combined "раздел панель" class) because main.pns's
+		   перерисовать_раздел() REPLACES the whole class attribute with
+		   just "раздел" or "скрыто" on every re-render — any styling
+		   that depended on a co-occurring "панель" class would vanish
+		   the instant the user switched tabs. */
+		.панель,
+		.раздел {
+			background: var(--surface);
+			border: 1px solid var(--border);
+			border-radius: var(--radius);
+			box-shadow: var(--shadow);
+		}
+		.раздел { padding: 1.25rem; }
+		.раздел-заголовок {
+			font-size: 0.95rem;
+			font-weight: 700;
+			margin: 0 0 0.9rem;
+		}
+
+		/* --- Forms --- */
+		label { font-size: 0.85rem; color: var(--text-muted); }
+		input {
+			padding: 0.55rem 0.75rem;
+			border: 1px solid var(--border);
+			border-radius: 0.55rem;
+			background: var(--surface-muted);
+			color: var(--text);
+			font-size: 0.9rem;
+			outline: none;
+			transition: border-color 0.12s ease, box-shadow 0.12s ease;
+		}
+		input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+		input::placeholder { color: var(--text-muted); }
+		button {
+			padding: 0.55rem 0.95rem;
+			border: none;
+			border-radius: 0.55rem;
+			background: var(--accent);
+			color: white;
+			font-size: 0.85rem;
+			font-weight: 600;
+			cursor: pointer;
+			transition: background 0.12s ease, transform 0.05s ease;
+		}
+		button:hover { background: var(--accent-dark); }
+		button:active { transform: translateY(1px); }
+		.форма {
+			display: flex;
+			gap: 0.5rem;
+			margin-bottom: 1rem;
+			flex-wrap: wrap;
+			align-items: center;
+			padding-bottom: 1rem;
+			border-bottom: 1px dashed var(--border);
+		}
+		.форма input { flex: 1 1 9rem; min-width: 8rem; }
+		.форма button { flex: 0 0 auto; white-space: nowrap; }
+
+		/* --- Edit sub-panels --- */
+		#панель-ред-пользователя,
+		#панель-ред-клиента {
+			background: var(--surface-muted);
+			border: 1px solid var(--border);
+			border-radius: 0.7rem;
+			padding: 0.85rem;
+			margin: 0 0 1rem;
+		}
+
+		/* --- Lists --- */
+		.раздел ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+		.раздел ul:empty::before {
+			content: "Пока пусто";
+			display: block;
+			color: var(--text-muted);
+			font-size: 0.85rem;
+			padding: 0.75rem 0.25rem;
+		}
 		.запись {
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
 			gap: 0.65rem;
-			padding: 0.6rem 0.5rem;
+			padding: 0.6rem 0.75rem;
 			border-radius: 0.6rem;
+			border: 1px solid transparent;
+			font-size: 0.9rem;
 		}
-		.запись:hover { background: var(--surface-muted); }
+		.запись:hover { background: var(--surface-muted); border-color: var(--border); }
 		.кнопка-удалить, .кнопка-вторичная {
 			flex-shrink: 0;
 			background: transparent;
 			color: var(--text-muted);
 			border: 1px solid var(--border);
+			padding: 0.35rem 0.6rem;
+			font-size: 0.8rem;
 		}
+		.кнопка-вторичная:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 		.кнопка-удалить:hover { background: var(--danger); color: white; border-color: var(--danger); }
-		.шапка { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-		.ошибка { color: var(--danger); font-size: 0.9rem; margin: 0.5rem 0 0; }
-		#новый-секрет { font-size: 0.85rem; color: var(--text-muted); word-break: break-all; margin: 0.5rem 0 0; }
+
+		.ошибка {
+			color: var(--danger);
+			background: var(--danger-soft);
+			border: 1px solid var(--danger);
+			border-radius: 0.5rem;
+			padding: 0.5rem 0.7rem;
+			font-size: 0.85rem;
+			margin: 0.85rem 0 0;
+		}
+		.ошибка:empty { display: none; }
+		#новый-секрет {
+			font-size: 0.82rem;
+			color: var(--text);
+			background: var(--accent-soft);
+			border: 1px solid var(--accent);
+			border-radius: 0.5rem;
+			padding: 0.55rem 0.7rem;
+			word-break: break-all;
+			margin: 0 0 1rem;
+		}
+		#новый-секрет:empty { display: none; }
 	</style>
 </head>
 <body>
-	<main>
-		<h1>дозорный — админка</h1>
-
-		<div id="панель-логина" class="панель">
-			<div class="форма">
-				<input id="логин-поле" type="text" placeholder="логин" />
-				<input id="пароль-поле" type="password" placeholder="пароль" />
-				<button id="кнопка-войти">Войти</button>
+	<div id="панель-логина" class="панель">
+		<div class="карточка-логина">
+			<div class="бренд">
+				<div class="бренд-значок">Д</div>
+				<div class="бренд-текст">дозорный</div>
 			</div>
+			<h2>Вход в админку</h2>
+			<p class="подсказка">Учётные данные администратора дозорного.</p>
+			<div class="поле-группа">
+				<label for="логин-поле">Логин</label>
+				<input id="логин-поле" type="text" placeholder="admin" autocomplete="username" />
+			</div>
+			<div class="поле-группа">
+				<label for="пароль-поле">Пароль</label>
+				<input id="пароль-поле" type="password" placeholder="••••••••" autocomplete="current-password" />
+			</div>
+			<button id="кнопка-войти">Войти</button>
 			<p id="ошибка-логина" class="ошибка"></p>
 		</div>
+	</div>
 
-		<div id="приложение" class="скрыто">
-			<div class="шапка">
-				<div class="вкладки">
-					<button class="вкладка" id="вкладка-пользователи">Пользователи</button>
-					<button class="вкладка" id="вкладка-группы">Группы</button>
-					<button class="вкладка" id="вкладка-клиенты">Клиенты</button>
-					<button class="вкладка" id="вкладка-стадии">Стадии</button>
-				</div>
-				<button id="кнопка-выйти">Выйти</button>
+	<div id="приложение" class="скрыто">
+		<div class="шапка">
+			<div class="бренд">
+				<div class="бренд-значок">Д</div>
+				<div class="бренд-текст">дозорный</div>
+			</div>
+			<button id="кнопка-выйти" class="кнопка-вторичная">Выйти</button>
+		</div>
+
+		<div class="контейнер">
+			<div class="вкладки">
+				<button class="вкладка" id="вкладка-пользователи">Пользователи</button>
+				<button class="вкладка" id="вкладка-группы">Группы</button>
+				<button class="вкладка" id="вкладка-клиенты">Клиенты</button>
+				<button class="вкладка" id="вкладка-стадии">Стадии</button>
 			</div>
 
-			<div id="раздел-пользователи" class="раздел скрыто панель">
+			<div id="раздел-пользователи" class="скрыто">
+				<p class="раздел-заголовок">Пользователи</p>
 				<div class="форма">
 					<input id="новый-пользователь-логин" type="text" placeholder="логин" />
 					<input id="новый-пользователь-пароль" type="password" placeholder="пароль" />
@@ -137,7 +340,8 @@
 				<ul id="список-пользователей"></ul>
 			</div>
 
-			<div id="раздел-группы" class="раздел скрыто панель">
+			<div id="раздел-группы" class="скрыто">
+				<p class="раздел-заголовок">Группы</p>
 				<div class="форма">
 					<input id="новая-группа-имя" type="text" placeholder="имя группы" />
 					<button id="добавить-группу">Добавить</button>
@@ -145,7 +349,8 @@
 				<ul id="список-групп"></ul>
 			</div>
 
-			<div id="раздел-клиенты" class="раздел скрыто панель">
+			<div id="раздел-клиенты" class="скрыто">
+				<p class="раздел-заголовок">OAuth2-клиенты</p>
 				<div class="форма">
 					<input id="новый-клиент-имя" type="text" placeholder="имя приложения" />
 					<input id="новый-клиент-redirect" type="text" placeholder="redirect_uri" />
@@ -163,11 +368,12 @@
 				<ul id="список-клиентов"></ul>
 			</div>
 
-			<div id="раздел-стадии" class="раздел скрыто панель">
+			<div id="раздел-стадии" class="скрыто">
+				<p class="раздел-заголовок">Стадии flow</p>
 				<ul id="список-стадий"></ul>
 			</div>
 		</div>
-	</main>
+	</div>
 
 	<script type="module">
 		import { loadAotDomProgram } from "/admin/loader.js"
