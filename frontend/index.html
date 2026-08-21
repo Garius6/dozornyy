@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ru">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>дозорный — админ</title>
+	<style>
+		:root {
+			color-scheme: light dark;
+			--accent: #6366f1;
+			--accent-dark: #4f46e5;
+			--danger: #ef4444;
+			--surface: #ffffff;
+			--surface-muted: #f8fafc;
+			--border: #e2e8f0;
+			--text: #0f172a;
+			--text-muted: #64748b;
+		}
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--surface: #1e293b;
+				--surface-muted: #0f172a;
+				--border: #334155;
+				--text: #f1f5f9;
+				--text-muted: #94a3b8;
+			}
+		}
+		* { box-sizing: border-box; }
+		body {
+			margin: 0;
+			min-height: 100vh;
+			display: flex;
+			justify-content: center;
+			padding: 3rem 1rem;
+			background: var(--surface-muted);
+			color: var(--text);
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+		}
+		main { width: 100%; max-width: 40rem; }
+		h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 1.25rem; text-align: center; }
+		.скрыто { display: none; }
+		.панель {
+			background: var(--surface);
+			border: 1px solid var(--border);
+			border-radius: 1rem;
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+			padding: 1rem;
+		}
+		input {
+			padding: 0.6rem 0.8rem;
+			border: 1px solid var(--border);
+			border-radius: 0.6rem;
+			background: var(--surface-muted);
+			color: var(--text);
+			font-size: 0.95rem;
+			outline: none;
+		}
+		input:focus { border-color: var(--accent); }
+		button {
+			padding: 0.6rem 1rem;
+			border: none;
+			border-radius: 0.6rem;
+			background: var(--accent);
+			color: white;
+			font-size: 0.9rem;
+			font-weight: 600;
+			cursor: pointer;
+		}
+		button:hover { background: var(--accent-dark); }
+		.форма { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+		.форма input { flex: 1; min-width: 8rem; }
+		.вкладки { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; }
+		.вкладка {
+			background: transparent;
+			color: var(--text-muted);
+			border: 1px solid var(--border);
+		}
+		.вкладка-активна { background: var(--accent); color: white; border-color: var(--accent); }
+		.раздел ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+		.запись {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.65rem;
+			padding: 0.6rem 0.5rem;
+			border-radius: 0.6rem;
+		}
+		.запись:hover { background: var(--surface-muted); }
+		.кнопка-удалить, .кнопка-вторичная {
+			flex-shrink: 0;
+			background: transparent;
+			color: var(--text-muted);
+			border: 1px solid var(--border);
+		}
+		.кнопка-удалить:hover { background: var(--danger); color: white; border-color: var(--danger); }
+		.шапка { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+		.ошибка { color: var(--danger); font-size: 0.9rem; margin: 0.5rem 0 0; }
+		#новый-секрет { font-size: 0.85rem; color: var(--text-muted); word-break: break-all; margin: 0.5rem 0 0; }
+	</style>
+</head>
+<body>
+	<main>
+		<h1>дозорный — админка</h1>
+
+		<div id="панель-логина" class="панель">
+			<div class="форма">
+				<input id="логин-поле" type="text" placeholder="логин" />
+				<input id="пароль-поле" type="password" placeholder="пароль" />
+				<button id="кнопка-войти">Войти</button>
+			</div>
+			<p id="ошибка-логина" class="ошибка"></p>
+		</div>
+
+		<div id="приложение" class="скрыто">
+			<div class="шапка">
+				<div class="вкладки">
+					<button class="вкладка" id="вкладка-пользователи">Пользователи</button>
+					<button class="вкладка" id="вкладка-группы">Группы</button>
+					<button class="вкладка" id="вкладка-клиенты">Клиенты</button>
+					<button class="вкладка" id="вкладка-стадии">Стадии</button>
+				</div>
+				<button id="кнопка-выйти">Выйти</button>
+			</div>
+
+			<div id="раздел-пользователи" class="раздел скрыто панель">
+				<div class="форма">
+					<input id="новый-пользователь-логин" type="text" placeholder="логин" />
+					<input id="новый-пользователь-пароль" type="password" placeholder="пароль" />
+					<input id="новый-пользователь-email" type="text" placeholder="email" />
+					<button id="добавить-пользователя">Добавить</button>
+				</div>
+				<ul id="список-пользователей"></ul>
+			</div>
+
+			<div id="раздел-группы" class="раздел скрыто панель">
+				<div class="форма">
+					<input id="новая-группа-имя" type="text" placeholder="имя группы" />
+					<button id="добавить-группу">Добавить</button>
+				</div>
+				<ul id="список-групп"></ul>
+			</div>
+
+			<div id="раздел-клиенты" class="раздел скрыто панель">
+				<div class="форма">
+					<input id="новый-клиент-имя" type="text" placeholder="имя приложения" />
+					<input id="новый-клиент-redirect" type="text" placeholder="redirect_uri" />
+					<input id="новый-клиент-scope" type="text" placeholder="scope (openid profile)" />
+					<button id="добавить-клиента">Добавить</button>
+				</div>
+				<p id="новый-секрет"></p>
+				<ul id="список-клиентов"></ul>
+			</div>
+
+			<div id="раздел-стадии" class="раздел скрыто панель">
+				<ul id="список-стадий"></ul>
+			</div>
+		</div>
+	</main>
+
+	<script type="module">
+		import { loadAotDomProgram } from "/admin/loader.js"
+
+		await loadAotDomProgram("/admin/main.wasm")
+	</script>
+</body>
+</html>
