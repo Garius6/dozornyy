@@ -99,7 +99,7 @@
 
 функ форма_логина(п: ПараметрыАвторизации, ошибка_текст: Строка) -> Строка
 	пер блок_ошибки = если длина(ошибка_текст) > 0 тогда "<p style=\"color:red\">" + экранировать_html(ошибка_текст) + "</p>" иначе "" конец
-	"<!DOCTYPE html><html><body><h1>Вход</h1>" + блок_ошибки +
+	"<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><h1>Вход</h1>" + блок_ошибки +
 	"<form method=\"POST\" action=\"/login\">" +
 	параметры_в_hidden(п) +
 	"<label>Логин: <input type=\"text\" name=\"логин\"></label><br>" +
@@ -109,7 +109,7 @@
 конец
 
 функ форма_согласия(п: ПараметрыАвторизации, имя_клиента: Строка, login_ticket: Строка) -> Строка
-	"<!DOCTYPE html><html><body><h1>Запрос доступа</h1>" +
+	"<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><h1>Запрос доступа</h1>" +
 	"<p>Приложение <b>" + экранировать_html(имя_клиента) + "</b> запрашивает доступ к: " + экранировать_html(п.scope) + "</p>" +
 	"<form method=\"POST\" action=\"/consent\">" +
 	hidden_поле("login_ticket", login_ticket) +
