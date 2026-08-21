@@ -112,6 +112,9 @@
 	апи.маршрутизатор.получить("/.well-known/openid-configuration", функ(зм: http.ЗапросМаршрута) -> http.ОтветСервера
 		oauth.обработать_discovery(БАЗОВЫЙ_URL, зм)
 	конец)
+	апи.маршрутизатор.получить("/.well-known/jwks.json", функ(зм: http.ЗапросМаршрута) -> http.ОтветСервера
+		oauth.обработать_jwks(соед, зм)
+	конец)
 
 	// Admin SPA (WASM, DOM.*) — статика, отдельно от admin REST API
 	// (JSON, /api/*) и OAuth2-маршрутов выше.

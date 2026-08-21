@@ -12,22 +12,28 @@ flow-движок. Строится над [быстряга](https://github.com
 полный CRUD) + US3 (refresh-ротация) реализованы.** Все FR-001..FR-012
 и SC-001..SC-006 закрыты. Плюс v1.1: упрощённый flow-движок (стадии в
 БД, `consent` отключаема через API/SPA) и admin SPA (WASM/`DOM.*`,
-полный CRUD, без JS-фреймворка). Проверено 71 e2e-проверкой на реальном
-сокете (`тест_дозорный.pns`), живым `curl` и реальным headless-браузером
-(Playwright) для SPA.
+полный CRUD, без JS-фреймворка). Плюс v1.2: ES256/JWKS для публичных
+OAuth2-клиентов (SPA/мобильные — `/token` только через PKCE, id_token
+подписан серверным ключом, `GET /.well-known/jwks.json`). Проверено 87
+e2e-проверками на реальном сокете (`тест_дозорный.pns`), живым `curl` и
+реальным headless-браузером (Playwright) для SPA.
 
 ## Структура
 
 - `модель.pns` — SQLite-схема (`бд.*`) и репозитории: Пользователь/
   Группа/Клиент/КодАвторизации/AccessТокен/RefreshТокен/admin-токен/
-  Стадия.
+  Стадия/ключи_сервера (серверный ES256-ключ, генерируется один раз).
 - `пароли.pns` — PBKDF2-хэширование паролей.
 - `oauth.pns` — `/authorize` → `/login` → `/consent` → `/token` →
-  `/userinfo` → `/.well-known/openid-configuration`; учитывает
-  `стадия_включена(consent)` — выключена -> редирект с `code` сразу
-  после логина, минуя экран согласия.
+  `/userinfo` → `/.well-known/openid-configuration` →
+  `/.well-known/jwks.json`; учитывает `стадия_включена(consent)` —
+  выключена -> редирект с `code` сразу после логина, минуя экран
+  согласия. Публичные клиенты (`Клиент.публичный`) аутентифицируются
+  на `/token` только через PKCE, id_token подписан ES256-ключом
+  сервера, не `client_secret`.
 - `admin.pns` — REST/JSON admin API поверх `быстряга.Приложение`:
-  create/read/update/delete для пользователей, групп, клиентов, стадий.
+  create/read/update/delete для пользователей, групп, клиентов
+  (включая публичные, без `client_secret`), стадий.
 - `frontend/` — admin SPA, panos → WASM (`panos build --target=wasm`),
   `DOM.*`/`состояние.*`, отдаётся на `/admin`.
 - `старт.pns` — сборка приложения, bootstrap первого admin-пользователя.

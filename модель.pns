@@ -5,6 +5,7 @@
 // 13 цифр, см. panos gotchas).
 
 импорт бд
+импорт криптография
 импорт строки
 импорт время
 импорт коллекции как кол
@@ -24,6 +25,12 @@
 	имя:  Строка
 конец
 
+/// `публичный` (RFC 6749 §2.1) — клиент без общего секрета с сервером
+/// (SPA/мобильное приложение, не может хранить client_secret). Такой
+/// клиент аутентифицируется на /token ТОЛЬКО через PKCE (уже обязателен
+/// для всех клиентов), а id_token подписывается СЕРВЕРНЫМ ES256-ключом
+/// вместо HS256 по хэш_secret/соль (которые для публичного клиента
+/// хранятся пустыми строками, никогда не используются).
 экспорт тип Клиент = структура
 	client_id:     Строка
 	хэш_secret:    Строка
@@ -31,6 +38,7 @@
 	имя:           Строка
 	redirect_uris: Массив(Строка) // пробел-разделённый список в БД
 	scopes:        Массив(Строка) // пробел-разделённый список в БД
+	публичный:     Булево
 конец
 
 экспорт тип КодАвторизации = структура
@@ -89,12 +97,13 @@
 		"CREATE TABLE IF NOT EXISTS пользователи (ид INTEGER PRIMARY KEY AUTOINCREMENT, логин TEXT UNIQUE NOT NULL, хэш_пароля TEXT NOT NULL, соль TEXT NOT NULL, email TEXT NOT NULL DEFAULT '', активен INTEGER NOT NULL DEFAULT 1, админ INTEGER NOT NULL DEFAULT 0)",
 		"CREATE TABLE IF NOT EXISTS группы (ид INTEGER PRIMARY KEY AUTOINCREMENT, имя TEXT UNIQUE NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS пользователь_группы (пользователь_ид INTEGER NOT NULL, группа_ид INTEGER NOT NULL)",
-		"CREATE TABLE IF NOT EXISTS клиенты (client_id TEXT PRIMARY KEY, хэш_secret TEXT NOT NULL, соль TEXT NOT NULL, имя TEXT NOT NULL, redirect_uris TEXT NOT NULL, scopes TEXT NOT NULL)",
+		"CREATE TABLE IF NOT EXISTS клиенты (client_id TEXT PRIMARY KEY, хэш_secret TEXT NOT NULL, соль TEXT NOT NULL, имя TEXT NOT NULL, redirect_uris TEXT NOT NULL, scopes TEXT NOT NULL, публичный INTEGER NOT NULL DEFAULT 0)",
 		"CREATE TABLE IF NOT EXISTS коды (код TEXT PRIMARY KEY, client_id TEXT NOT NULL, redirect_uri TEXT NOT NULL, scope TEXT NOT NULL, code_challenge TEXT NOT NULL, sub TEXT NOT NULL, истекает_мс INTEGER NOT NULL, использован INTEGER NOT NULL DEFAULT 0)",
 		"CREATE TABLE IF NOT EXISTS refresh_токены (токен TEXT PRIMARY KEY, цепочка TEXT NOT NULL, client_id TEXT NOT NULL, sub TEXT NOT NULL, scope TEXT NOT NULL, истекает_мс INTEGER NOT NULL, использован INTEGER NOT NULL DEFAULT 0)",
 		"CREATE TABLE IF NOT EXISTS access_токены (токен TEXT PRIMARY KEY, client_id TEXT NOT NULL, sub TEXT NOT NULL, scope TEXT NOT NULL, истекает_мс INTEGER NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS admin_токены (токен TEXT PRIMARY KEY, sub TEXT NOT NULL, истекает_мс INTEGER NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS стадии (ид INTEGER PRIMARY KEY AUTOINCREMENT, тип TEXT UNIQUE NOT NULL, порядок INTEGER NOT NULL, включена INTEGER NOT NULL DEFAULT 1)",
+		"CREATE TABLE IF NOT EXISTS ключи_сервера (ид INTEGER PRIMARY KEY, d TEXT NOT NULL, x TEXT NOT NULL, y TEXT NOT NULL)",
 	)
 	пер i: Целое = 0
 	пока i < запросы.длина() цикл
@@ -104,6 +113,13 @@
 		конец
 		i = i + 1
 	конец
+	// Миграция для БД, созданных ДО добавления публичных клиентов —
+	// `CREATE TABLE IF NOT EXISTS` выше не трогает уже существующую
+	// таблицу `клиенты`. Ошибка игнорируется намеренно: единственный
+	// ожидаемый исход на уже мигрированной БД — "duplicate column
+	// name", не значимая для вызывающего (project не ведёт полноценную
+	// схему миграций в v1, см. соседние комментарии в этом файле).
+	соед.выполнить("ALTER TABLE клиенты ADD COLUMN публичный INTEGER NOT NULL DEFAULT 0", массив())
 	Результат.Успех(истина)
 конец
 
@@ -278,13 +294,15 @@
 		ряд.получить("имя", ""),
 		кол.отфильтровать(строки.разбить(ряд.получить("redirect_uris", ""), " "), функ(с: Строка) -> Булево длина(с) > 0 конец),
 		кол.отфильтровать(строки.разбить(ряд.получить("scopes", ""), " "), функ(с: Строка) -> Булево длина(с) > 0 конец),
+		ряд.получить("публичный", "0") == "1",
 	)
 конец
 
-экспорт функ создать_клиента(соед: Соединение_БД, client_id: Строка, хэш_secret: Строка, соль: Строка, имя: Строка, redirect_uris: Массив(Строка), scopes: Массив(Строка)) -> Результат(Булево, Ошибка)
+экспорт функ создать_клиента(соед: Соединение_БД, client_id: Строка, хэш_secret: Строка, соль: Строка, имя: Строка, redirect_uris: Массив(Строка), scopes: Массив(Строка), публичный: Булево) -> Результат(Булево, Ошибка)
+	пер флаг = если публичный тогда "1" иначе "0" конец
 	пер рез = соед.выполнить(
-		"INSERT INTO клиенты (client_id, хэш_secret, соль, имя, redirect_uris, scopes) VALUES (?, ?, ?, ?, ?, ?)",
-		массив(client_id, хэш_secret, соль, имя, строки.соединить(redirect_uris, " "), строки.соединить(scopes, " ")),
+		"INSERT INTO клиенты (client_id, хэш_secret, соль, имя, redirect_uris, scopes, публичный) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		массив(client_id, хэш_secret, соль, имя, строки.соединить(redirect_uris, " "), строки.соединить(scopes, " "), флаг),
 	)
 	если рез.ошибка() тогда
 		возврат Результат.Неудача(рез.причина())
@@ -488,6 +506,34 @@
 		возврат Результат.Неудача(Ошибка("дозорный", "admin-токен истёк"))
 	конец
 	Результат.Успех(ряд.получить("sub", ""))
+конец
+
+/// Единственная строка (ид=1) с ES256-ключом сервера, используемым
+/// для подписи id_token публичных клиентов (`Клиент.публичный`) и для
+/// `/.well-known/jwks.json`. Генерируется РОВНО ОДИН РАЗ, при первом
+/// обращении — `криптография.es256_сгенерировать_ключи()` и сохраняется,
+/// последующие вызовы всегда читают ту же тройку (иначе уже выданные
+/// id_token переставали бы проверяться после каждого рестарта).
+экспорт функ получить_или_создать_ключи_сервера(соед: Соединение_БД) -> Результат((Строка, Строка, Строка), Ошибка)
+	пер рез = соед.запрос("SELECT d, x, y FROM ключи_сервера WHERE ид = 1", массив())
+	если рез.ошибка() тогда
+		возврат Результат.Неудача(рез.причина())
+	конец
+	пер строки_рез = рез.значение()
+	если строки_рез.длина() > 0 тогда
+		пер ряд = строки_рез[0]
+		возврат Результат.Успех((ряд.получить("d", ""), ряд.получить("x", ""), ряд.получить("y", "")))
+	конец
+
+	пер ключи = криптография.es256_сгенерировать_ключи()
+	пер вставка = соед.выполнить(
+		"INSERT INTO ключи_сервера (ид, d, x, y) VALUES (1, ?, ?, ?)",
+		массив(ключи.0, ключи.1, ключи.2),
+	)
+	если вставка.ошибка() тогда
+		возврат Результат.Неудача(вставка.причина())
+	конец
+	Результат.Успех(ключи)
 конец
 
 функ ряд_в_стадию(ряд: Соответствие(Строка, Строка)) -> Стадия
