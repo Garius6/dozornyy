@@ -188,6 +188,14 @@ export async function loadAotDomProgram(programWasmUrl) {
 			const el = document.querySelector(readString(selectorPtr))
 			if (el) el.setAttribute(readString(nameAttrPtr), readString(valuePtr))
 		},
+		// `DOM.удалить_атрибут` — symmetric counterpart to `dom_set_attribute`.
+		// A vdom-diff (`panosiki/марьяшка`) needs this to actually remove an
+		// attribute that disappeared from the new tree — before this, there
+		// was no way to unset a single attribute at all, only overwrite it.
+		dom_remove_attribute: (selectorPtr, nameAttrPtr) => {
+			const el = document.querySelector(readString(selectorPtr))
+			if (el) el.removeAttribute(readString(nameAttrPtr))
+		},
 		// `состояние.прочитать`/`.записать` — an Elm-architecture Model
 		// held as a plain JS variable in THIS closure (`heldModel`,
 		// declared below), not a DOM attribute — see
@@ -207,6 +215,24 @@ export async function loadAotDomProgram(programWasmUrl) {
 			child.id = readString(idPtr)
 			parent.appendChild(child)
 		},
+		// `DOM.удалить` — the ONE node-removal primitive this loader ever
+		// had none of before (every "clear a list" pattern used to be
+		// `dom_set_text_string(container, "")`, wiping the WHOLE
+		// subtree). Needed by the vdom-diff framework (`марьяшка`) to
+		// remove individual stale nodes without rebuilding their siblings.
+		dom_remove: (selectorPtr) => {
+			const el = document.querySelector(readString(selectorPtr))
+			if (el) el.remove()
+		},
+		// `DOM.путь`/`.перейти` — simple client-side routing. Deliberately
+		// separate from `состояние.*` (which is an opaque app-model
+		// string the loader never parses) — the current browser path is
+		// an environment fact, not application state.
+		dom_get_path: () => writeString(location.pathname),
+		dom_navigate: (pathPtr) => {
+			history.pushState({}, "", readString(pathPtr))
+			instance.exports["старт"]()
+		},
 		// Schedules a fresh exported Panos call. It deliberately does not
 		// suspend or resume the current Panos frame, so it is safe without a
 		// CPS transform or a general actor/closure runtime.
@@ -214,6 +240,15 @@ export async function loadAotDomProgram(programWasmUrl) {
 			const handler = instance.exports[readString(handlerNamePtr)]
 			if (typeof handler === "function") {
 				requestAnimationFrame(() => handler(contextPtr))
+			}
+		},
+		// Delayed TEA commands schedule a fresh exported Panos call. Keep
+		// transient WASM pointers out of the callback: only the handler name
+		// is decoded before the timer is registered.
+		dom_after_delay: (handlerNamePtr, delayMs) => {
+			const handler = instance.exports[readString(handlerNamePtr)]
+			if (typeof handler === "function") {
+				setTimeout(() => handler(), Math.max(0, delayMs))
 			}
 		},
 		// The AOT ABI cannot suspend a Panos frame, so this intentionally uses
@@ -273,6 +308,12 @@ export async function loadAotDomProgram(programWasmUrl) {
 	// (`panos run`'s `функ старт()`, same convention, no arguments here
 	// since the AOT backend never lowers argv).
 	instance.exports["старт"]()
+
+	// Browser back/forward (`popstate`) doesn't go through `dom_navigate`
+	// (that's only for PROGRAMMATIC navigation via `DOM.перейти`) — the
+	// URL already changed by the time this fires, so the only thing
+	// needed is a fresh render against the new `location.pathname`.
+	window.addEventListener("popstate", () => instance.exports["старт"]())
 
 	return instance
 }
